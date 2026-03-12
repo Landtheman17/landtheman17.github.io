@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Win95 Shortcut Manager</title>
+    <style>
+        :root {
+            --win-gray: #c0c0c0;
+            --win-blue: #000080;
+            --win-teal: #008080;
+            --win-border-light: #ffffff;
+            --win-border-dark: #808080;
+        }
+
+        body {
+            background-color: var(--win-teal);
+            font-family: "MS Sans Serif", Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #desktop {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 100px);
+            grid-template-rows: repeat(auto-fill, 110px);
+            gap: 15px;
+            padding: 20px;
+            align-content: start;
+        }
+
+        .shortcut {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            font-size: 11px;
+            text-align: center;
+            width: 80px;
+        }
+
+        .icon-box {
+            width: 42px;
+            height: 42px;
+            background: var(--win-gray);
+            border: 2px solid;
+            border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+            overflow: hidden;
+            font-size: 9px;
+            color: black;
+            padding: 2px;
+            box-sizing: border-box;
+        }
+
+        .icon-box img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+
+        #taskbar {
+            height: 35px;
+            background: var(--win-gray);
+            border-top: 2px solid var(--win-border-light);
+            display: flex;
+            align-items: center;
+            padding: 2px 5px;
+            z-index: 100;
+        }
+
+        #start-button {
+            height: 26px;
+            padding: 0 8px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            border: 2px solid;
+            border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        #start-button:active {
+            border-color: var(--win-border-dark) var(--win-border-light) var(--win-border-light) var(--win-border-dark);
+            padding: 1px 7px 0 9px;
+        }
+
+        #add-window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            background: var(--win-gray);
+            border: 2px solid;
+            border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light);
+            box-shadow: 2px 2px 0px black;
+            display: none;
+            z-index: 200;
+        }
+
+        .title-bar {
+            background: var(--win-blue);
+            color: white;
+            padding: 3px 5px;
+            font-weight: bold;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .window-body { padding: 15px; }
+        label { display: block; font-size: 12px; margin-bottom: 2px; color: black; }
+        input { width: 100%; margin-bottom: 12px; border: 2px inset white; padding: 2px; box-sizing: border-box; }
+        
+        .btn-row { display: flex; gap: 10px; justify-content: flex-end; }
+        button.win-btn { 
+            background: var(--win-gray); 
+            border: 2px solid;
+            border-color: var(--win-border-light) var(--win-border-dark) var(--win-border-dark) var(--win-border-light);
+            padding: 4px 15px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button.win-btn:active {
+            border-color: var(--win-border-dark) var(--win-border-light) var(--win-border-light) var(--win-border-dark);
+        }
+    </style>
+</head>
+<body>
+
+<div id="desktop">
+    <!-- Static Default 1 -->
+    <a href="https://github.com" class="shortcut" target="_blank">
+        <div class="icon-box"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoWyS0ghlpWsCY0zQ002u98HbSQPhhdzPedA&s"></div>
+
+        <span>Landtheman17</span>
+    </a>
+
+    <!-- Static Default 2 -->
+    <a href="https://sites.google.com" class="shortcut" target="_blank">
+        <div class="icon-box" style="background: black;"></div>
+        <span>The Best Apps</span>
+    </a>
+
+    <!-- Custom shortcuts will load here -->
+    <div id="custom-shortcuts-area" style="display: contents;"></div>
+</div>
+
+<div id="add-window">
+    <div class="title-bar">
+        <span>Add New Shortcut</span>
+    </div>
+    <div class="window-body">
+        <label>Name:</label>
+        <input type="text" id="name-in">
+        <label>URL:</label>
+        <input type="text" id="url-in" placeholder="https://...">
+        <label>Image URL (Optional):</label>
+        <input type="text" id="img-in">
+        <div class="btn-row">
+            <button class="win-btn" onclick="createShortcut()">OK</button>
+            <button class="win-btn" onclick="toggleWindow()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="taskbar">
+    <div id="start-button" onclick="toggleWindow()">
+        <img src="https://win98icons.alexmeub.com" width="16" style="margin-right:5px;">
+        Start
+    </div>
+</div>
+
+<script>
+    const storageKey = 'win95_user_shortcuts';
+
+    // Load saved shortcuts on page start
+    window.onload = function() {
+        const saved = JSON.parse(localStorage.getItem(storageKey)) || [];
+        saved.forEach(data => renderShortcut(data));
+    };
+
+    function toggleWindow() {
+        const win = document.getElementById('add-window');
+        win.style.display = (win.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function createShortcut() {
+        const name = document.getElementById('name-in').value;
+        const url = document.getElementById('url-in').value;
+        const img = document.getElementById('img-in').value;
+
+        if (!name || !url) return alert("Missing Name or URL!");
+
+        const shortcutData = { name, url, img };
+        
+        // Save to LocalStorage
+        const saved = JSON.parse(localStorage.getItem(storageKey)) || [];
+        saved.push(shortcutData);
+        localStorage.setItem(storageKey, JSON.stringify(saved));
+
+        // Show on desktop
+        renderShortcut(shortcutData);
+        
+        // Cleanup
+        toggleWindow();
+        document.getElementById('name-in').value = '';
+        document.getElementById('url-in').value = '';
+        document.getElementById('img-in').value = '';
+    }
+
+    function renderShortcut(data) {
+        const container = document.getElementById('custom-shortcuts-area');
+        
+        const link = document.createElement('a');
+        link.className = 'shortcut';
+        link.href = data.url;
+        link.target = '_blank';
+
+        const iconBox = document.createElement('div');
+        iconBox.className = 'icon-box';
+        
+        if (data.img) {
+            iconBox.innerHTML = `<img src="${data.img}">`;
+        } else {
+            // Default blank icon style
+            iconBox.style.background = '#808080';
+        }
+
+        link.appendChild(iconBox);
+        
+        const label = document.createElement('span');
+        label.innerText = data.name;
+        link.appendChild(label);
+        
+        container.appendChild(link);
+    }
+</script>
+
+</body>
+</html>
